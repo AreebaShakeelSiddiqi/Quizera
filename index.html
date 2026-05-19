@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ExamForge — Professional Quiz Generator</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#0a0a0f;--bg2:#12121a;--bg3:#1a1a26;--bg4:#22223a;
+--accent:#7c6af7;--accent2:#a78bfa;--accent3:#c4b5fd;
+--gold:#f5c842;--gold2:#fbbf24;
+--text:#f0eeff;--text2:#a89fcc;--text3:#6b6490;
+--border:#2a2845;--border2:#3d3a6b;
+--success:#10b981;--danger:#ef4444;--warn:#f59e0b;
+--r:12px;--r2:8px;--r3:4px;
+}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100}
+.main{margin-left:260px;flex:1;min-height:100vh}
+
+/* Sidebar */
+.logo{padding:24px 20px;border-bottom:1px solid var(--border)}
+.logo-text{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:0.05em;text-transform:uppercase}
+.nav{padding:16px 12px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r2);cursor:pointer;font-size:14px;color:var(--text2);transition:all 0.2s;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(124,106,247,0.2),rgba(167,139,250,0.1));color:var(--accent3);border:1px solid rgba(124,106,247,0.3)}
+.nav-icon{font-size:18px;width:20px;text-align:center}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+
+/* Header */
+.page-header{padding:32px 40px 0;border-bottom:1px solid var(--border);background:var(--bg)}
+.page-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:600;color:var(--text)}
+.page-subtitle{font-size:14px;color:var(--text2);margin-top:4px;padding-bottom:24px}
+
+/* Content */
+.content{padding:32px 40px}
+
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:20px}
+.card-title{font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px}
+
+/* Form elements */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-group.full{grid-column:1/-1}
+label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:500}
+input,select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:var(--r2);font-size:14px;font-family:'IBM Plex Sans',sans-serif;transition:border-color 0.2s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,106,247,0.1)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+textarea{resize:vertical;min-height:80px}
+select option{background:var(--bg3)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:var(--r2);font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s;font-family:'IBM Plex Sans',sans-serif}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#5b4fcf);color:#fff}
+.btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--border2);color:var(--text)}
+.btn-ghost{background:none;color:var(--text2);padding:8px 12px}
+.btn-ghost:hover{color:var(--text)}
+.btn-danger{background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}
+.btn-danger:hover{background:rgba(239,68,68,0.25)}
+.btn-success{background:linear-gradient(135deg,#059669,#10b981);color:#fff}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1000}
+.btn-sm{padding:6px 12px;font-size:13px}
+
+/* Badge */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-mcq{background:rgba(124,106,247,0.15);color:var(--accent3)}
+.badge-short{background:rgba(16,185,129,0.15);color:#34d399}
+.badge-tf{background:rgba(245,200,66,0.15);color:var(--gold)}
+
+/* Question builder */
+.question-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:12px;position:relative;transition:border-color 0.2s}
+.question-card:hover{border-color:var(--border2)}
+.question-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.q-num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text3)}
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.option-row{display:flex;align-items:center;gap:8px}
+.option-label{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent2);min-width:20px}
+.answer-row{margin-top:12px;display:flex;align-items:center;gap:10px;padding-top:12px;border-top:1px solid var(--border)}
+.answer-label{font-size:12px;color:var(--text3);flex-shrink:0}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:center}
+.stat-num{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--accent2)}
+.stat-label{font-size:13px;color:var(--text3);margin-top:4px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;padding:4px;background:var(--bg3);border-radius:var(--r2);margin-bottom:24px;width:fit-content}
+.tab{padding:8px 16px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--text2);border:none;background:none;transition:all 0.2s;font-family:'IBM Plex Sans',sans-serif}
+.tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+
+/* ===== EXAM PAPER STYLES ===== */
+.exam-paper{background:#fff;color:#1a1a1a;font-family:'Times New Roman',serif;max-width:800px;margin:0 auto;padding:40px 48px;border-radius:var(--r);box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.paper-header{border-bottom:3px solid #1a1a1a;padding-bottom:12px;margin-bottom:20px}
+.paper-header-top{display:flex;justify-content:space-between;align-items:flex-start}
+.paper-title{font-size:18px;font-weight:bold;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.paper-meta{display:grid;grid-template-columns:1fr 1fr;gap:0 40px;margin-top:10px}
+.paper-meta-item{font-size:13px;display:flex;gap:4px;margin-bottom:4px}
+.paper-meta-key{font-weight:bold}
+.paper-qr-area{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.paper-qr-label{font-size:9px;color:#666;text-align:center;font-family:'Arial',sans-serif}
+.answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;margin-bottom:20px;border:1px solid #333}
+.answer-grid-header{display:grid;grid-template-columns:auto 1fr 1fr 1fr 1fr;align-items:center;border-bottom:1px solid #333;font-size:12px;font-weight:bold;text-align:center;background:#f0f0f0}
+.answer-grid-half{border:1px solid #333}
+.answer-half-title{background:#333;color:#fff;font-size:11px;font-weight:bold;padding:4px;text-align:center;font-family:'Arial',sans-serif}
+.answer-row-grid{display:grid;grid-template-columns:40px 1fr 1fr 1fr 1fr;align-items:center;border-bottom:0.5px solid #aaa;padding:3px 6px;font-size:12px}
+.answer-row-grid:last-child{border-bottom:none}
+.bubble{width:18px;height:18px;border-radius:50%;border:1.5px solid #333;display:flex;align-items:center;justify-content:center;font-size:10px;margin:0 auto}
+.paper-section-title{font-size:14px;font-weight:bold;text-decoration:underline;margin:20px 0 12px}
+.paper-question{margin-bottom:16px;font-size:13px}
+.paper-q-num{font-weight:bold}
+.paper-q-text{display:inline}
+.paper-options{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-top:8px;font-size:12px}
+.paper-option{display:flex;gap:6px;align-items:flex-start}
+.paper-option-key{font-weight:bold}
+.paper-tf-options{display:flex;gap:30px;margin-top:8px;font-size:13px}
+.paper-short-line{border-bottom:1px solid #999;margin-top:24px;width:100%}
+.paper-qr-bottom{margin-top:30px;padding-top:16px;border-top:1px dashed #aaa;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#555;font-family:'Arial',sans-serif}
+.name-reg{display:flex;gap:40px;font-size:13px;margin-top:10px;margin-bottom:6px}
+.underline-field{border-bottom:1px solid #333;min-width:160px;display:inline-block}
+
+/* Answer Key */
+.answer-key-paper{background:#fff9f0;border:2px solid #d97706;border-radius:var(--r);padding:32px;max-width:700px;margin:0 auto;color:#1a1a1a;font-family:'IBM Plex Sans',sans-serif}
+.ak-header{background:#d97706;color:#fff;margin:-32px -32px 24px;padding:20px 32px;border-radius:var(--r) var(--r) 0 0}
+.ak-title{font-family:'Playfair Display',serif;font-size:22px}
+.ak-meta{font-size:13px;opacity:0.85;margin-top:4px}
+.ak-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #fcd34d}
+.ak-num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:#92400e;min-width:40px;font-weight:600}
+.ak-answer{font-size:14px;color:#1a1a1a}
+.ak-correct{display:inline-block;padding:2px 12px;background:#d97706;color:#fff;border-radius:20px;font-size:13px;font-weight:600}
+
+/* AR View */
+.ar-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ar-frame{border:2px solid var(--accent);border-radius:var(--r);overflow:hidden;width:90vw;max-width:600px;max-height:80vh;background:var(--bg2)}
+.ar-header{background:linear-gradient(135deg,var(--accent),#5b4fcf);padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+.ar-title{font-family:'Playfair Display',serif;font-size:18px;color:#fff}
+.ar-content{padding:24px;overflow-y:auto;max-height:65vh}
+.ar-answer-item{display:flex;align-items:center;gap:14px;padding:12px;background:var(--bg3);border-radius:var(--r2);margin-bottom:8px;border-left:3px solid var(--accent);animation:slideIn 0.3s ease forwards;opacity:0}
+@keyframes slideIn{from{transform:translateX(-20px);opacity:0}to{transform:none;opacity:1}}
+.ar-q-num{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text3);min-width:36px}
+.ar-answer-badge{padding:4px 14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:20px;font-weight:600;font-size:14px}
+
+/* Quiz list */
+.quiz-list-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;transition:border-color 0.2s;cursor:pointer}
+.quiz-list-item:hover{border-color:var(--border2)}
+.quiz-info{}
+.quiz-name{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+.quiz-meta-line{font-size:13px;color:var(--text3)}
+.quiz-actions{display:flex;gap:8px}
+
+/* QR Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:32px;max-width:480px;width:90%;text-align:center}
+.modal-title{font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px}
+.modal-sub{font-size:14px;color:var(--text2);margin-bottom:24px}
+.qr-wrapper{background:#fff;padding:16px;border-radius:var(--r2);display:inline-block;margin:0 auto 20px}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty-text{font-size:16px;margin-bottom:8px}
+.empty-sub{font-size:14px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 20px;font-size:14px;color:var(--text);z-index:2000;animation:toastIn 0.3s ease;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.toast.success{border-color:var(--success);color:#34d399}
+.toast.error{border-color:var(--danger);color:#fca5a5}
+@keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+.flex{display:flex}
+.items-center{align-items:center}
+.justify-between{justify-content:space-between}
+.gap-8{gap:8px}
+.gap-12{gap:12px}
+.gap-16{gap:16px}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.mt-24{margin-top:24px}
+.mb-8{margin-bottom:8px}
+.mb-16{margin-bottom:16px}
+.text-sm{font-size:13px}
+.text-muted{color:var(--text3)}
+.fw-500{font-weight:500}
+
+/* Responsive */
+@media(max-width:768px){
+.sidebar{width:220px}
+.main{margin-left:220px}
+.form-row{grid-template-columns:1fr}
+.stats-row{grid-template-columns:repeat(2,1fr)}
+.options-grid{grid-template-columns:1fr}
+.content{padding:20px}
+.page-header{padding:20px 20px 0}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+const ICONS={
+  create:'✦',dashboard:'⊞',quizzes:'≡',preview:'◉',qr:'▣',ar:'◈',
+  plus:'＋',trash:'✕',edit:'✎',copy:'⧉',check:'✓',download:'↓',
+  eye:'◎',lock:'⊕',logout:'→'
+};
+
+const generateId=()=>Math.random().toString(36).slice(2,10);
+
+// Initial sample quizzes matching the SP 2026 format
+const SAMPLE_QUIZZES=[
+  {
+    id:'quiz_sp2026',
+    title:'Quiz (SP 2026)',
+    subject:'Artificial Intelligence',
+    classGroup:'BSE-4A',
+    duration:'10 Minutes',
+    totalMarks:16,
+    password:'teacher123',
+    createdAt:new Date('2026-05-01').toISOString(),
+    questions:[
+      {id:'q1',type:'mcq',text:'Comparing BFS, UCS, Greedy, and A* by the criterion used for node selection, which ordering is correct?',options:['BFS: depth; UCS: g(n); Greedy: h(n); A*: g(n)+h(n)','BFS: h(n); UCS: g(n)+h(n); Greedy: g(n); A*: depth','BFS: g(n); UCS: depth; Greedy: g(n)+h(n); A*: h(n)','BFS: g(n)+h(n); UCS: h(n); Greedy: depth; A*: g(n)'],correct:'A',part:'I'},
+      {id:'q2',type:'mcq',text:'In the optimality proof of A*, f(n) ≤ f(Go) is derived from h(n) ≤ h*(n). This relies on which property?',options:['Consistency (monotonicity) of h','Monotonicity: f values never decrease along any path','h(goal) = 0 for every goal node','Admissibility: h never overestimates the true remaining cost h*'],correct:'A',part:'I'},
+      {id:'q3',type:'mcq',text:'A consistent (monotone) heuristic satisfies h(n) ≤ c(n,a,n\') + h(n\'). This condition is also known as the:',options:['Admissibility condition','Manhattan constraint','Optimistic bound condition','Triangle inequality for heuristics'],correct:'D',part:'I'},
+      {id:'q4',type:'mcq',text:'A DFS on a tree with branching factor b=4 and max depth m=10 pursues a path to maximum depth. Its peak space requirement is:',options:['O(bm): stores only the current path plus unexpanded siblings — about b×m nodes','O(b^m) = 4^10 ≈ 1 million nodes','O(b^d) where d is the solution depth','O(1) since DFS discards explored subtrees immediately'],correct:'A',part:'I'},
+      {id:'q5',type:'mcq',text:'Why is the straight-line distance (SLD) an admissible heuristic for road navigation problems?',options:['The actual road distance always equals the straight-line distance','It overestimates, making A* more conservative','It is consistent by the triangle inequality of roads','The straight-line distance is a lower bound — actual travel is always at least as long'],correct:'D',part:'I'},
+      {id:'q6',type:'mcq',text:'Which uninformed search is both complete and optimal on graphs with non-negative, non-zero step costs, and why?',options:['BFS — because it finds the shallowest goal','DFS — because it explores deepest nodes first','UCS — because it expands in order of increasing path cost','IDS — because it combines BFS completeness and DFS space efficiency'],correct:'C',part:'I'},
+      {id:'q7',type:'mcq',text:'Heuristic h2 dominates h1 (h2 ≥ h1 everywhere) and both are admissible. Using h2 in A* instead of h1:',options:['Always expands strictly fewer nodes — never the same count','May expand more nodes because h2 values are larger','Guarantees a strictly shorter solution path','A* with h2 expands a subset of nodes that A* with h1 would expand (h2 prunes the search space more aggressively)'],correct:'D',part:'I'},
+      {id:'q8',type:'mcq',text:'The Expectiminimax algorithm generalizes minimax to stochastic games. A chance node\'s value is computed as:',options:['max over all possible outcomes','min over all possible outcomes','ΣP(outcome)×Expectiminimax(outcome) — a probability-weighted average','The Expectiminimax value of the most likely outcome'],correct:'C',part:'I'},
+      {id:'q9',type:'mcq',text:'Depth-limited search (DLS) is preferred over IDS when:',options:['The solution depth d is unknown','The state space is infinite','Memory is the primary constraint','An upper bound L on the solution depth is known from domain knowledge'],correct:'D',part:'II'},
+      {id:'q10',type:'mcq',text:'IDS and BFS share the same asymptotic time complexity O(b^d). Yet IDS regenerates upper nodes multiple times. Why is IDS still preferred over BFS in large search spaces?',options:['IDS always finds the solution faster','IDS is optimal while BFS is not','IDS has linear O(bd) space whereas BFS requires O(b^d) space','IDS uses a heuristic to guide the search'],correct:'C',part:'II'},
+      {id:'q11',type:'mcq',text:'Minimax time complexity is O(b^m). For Chess (b≈35, d≈100), this is approximately 10^154. This makes exhaustive minimax:',options:['Feasible with modern parallel hardware','Completely infeasible; heuristic evaluation with depth cutoffs is required','Feasible only for endgame positions with ≤ 8 pieces','Feasible using alpha-beta pruning alone'],correct:'B',part:'II'},
+      {id:'q12',type:'mcq',text:'UCS expands nodes in order of increasing path cost g(n). Which fringe data structure enables this efficiently?',options:['FIFO queue (BFS order)','LIFO stack (DFS order)','Min-heap (priority queue ordered by g(n))','Hash table ordered by node depth'],correct:'C',part:'II'},
+      {id:'q13',type:'mcq',text:'Move ordering in alpha-beta critically affects performance. If the worst moves are always explored first (worst-case ordering), the resulting complexity is:',options:['O(b^(m/2)) — same improvement as ideal ordering','O(b^m) — identical to plain minimax, no pruning benefit at all','O(b^(m/3)) — moderate improvement','O(2^m) — exponentially worse than minimax'],correct:'B',part:'II'},
+      {id:'q14',type:'mcq',text:'In A* search, nodes are expanded in non-decreasing order of f(n). This means A* is effectively searching layers of increasing:',options:['Node depth','Heuristic value h(n) alone','Combined cost f(n) = g(n) + h(n)','Path cost g(n) alone'],correct:'C',part:'II'},
+      {id:'q15',type:'mcq',text:'DFS and IDS are both non-optimal in general. Under which specific condition does IDS become optimal?',options:['When all step costs are equal (unit cost)','When the branching factor is finite','When a consistent heuristic is applied','When the depth limit equals the maximum tree depth'],correct:'A',part:'II'},
+      {id:'q16',type:'mcq',text:'Minimax performs a depth-first search of the game tree. Why is DFS chosen over BFS for minimax?',options:['DFS finds the optimal move faster than BFS','DFS requires O(bm) space vs. BFS O(b^m), making it feasible','BFS cannot propagate minimax values back to the root','DFS is complete while BFS is not for game trees'],correct:'B',part:'II'},
+    ]
+  }
+];
+
+// ── App ──────────────────────────────────────────────────────────────
+function App(){
+  const [view,setView]=useState('dashboard');
+  const [quizzes,setQuizzes]=useState(()=>{
+    try{const s=localStorage.getItem('examforge_quizzes');return s?JSON.parse(s):SAMPLE_QUIZZES}catch{return SAMPLE_QUIZZES}
+  });
+  const [editingQuiz,setEditingQuiz]=useState(null);
+  const [previewQuiz,setPreviewQuiz]=useState(null);
+  const [qrQuiz,setQrQuiz]=useState(null);
+  const [arQuiz,setArQuiz]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [akQuiz,setAkQuiz]=useState(null);
+  const [akPassword,setAkPassword]=useState('');
+  const [akUnlocked,setAkUnlocked]=useState(false);
+
+  useEffect(()=>{
+    try{localStorage.setItem('examforge_quizzes',JSON.stringify(quizzes))}catch{}
+  },[quizzes]);
+
+  const showToast=(msg,type='success')=>{
+    setToast({msg,type});
+    setTimeout(()=>setToast(null),3000);
+  };
+
+  const saveQuiz=(quiz)=>{
+    setQuizzes(prev=>{
+      const idx=prev.findIndex(q=>q.id===quiz.id);
+      if(idx>=0){const n=[...prev];n[idx]=quiz;return n}
+      return [...prev,quiz];
+    });
+    showToast(quiz.id&&quizzes.find(q=>q.id===quiz.id)?'Quiz updated!':'Quiz saved!');
+    setView('quizzes');
+    setEditingQuiz(null);
+  };
+
+  const deleteQuiz=(id)=>{
+    setQuizzes(prev=>prev.filter(q=>q.id!==id));
+    showToast('Quiz deleted','error');
+  };
+
+  const duplicateQuiz=(quiz)=>{
+    const newQ={...quiz,id:generateId(),title:quiz.title+' (Copy)',createdAt:new Date().toISOString()};
+    setQuizzes(prev=>[...prev,newQ]);
+    showToast('Quiz duplicated!');
+  };
+
+  const openAK=(quiz)=>{setAkQuiz(quiz);setAkPassword('');setAkUnlocked(false)};
+
+  return(
+    <div className="app">
+      <Sidebar view={view} setView={v=>{setView(v);setEditingQuiz(null)}}/>
+      <main className="main">
+        {view==='dashboard'&&<Dashboard quizzes={quizzes} setView={setView} setEditingQuiz={setEditingQuiz} setPreviewQuiz={setPreviewQuiz} setQrQuiz={setQrQuiz} openAK={openAK}/>}
+        {view==='create'&&<QuizBuilder initialQuiz={editingQuiz} onSave={saveQuiz} onCancel={()=>{setView(editingQuiz?'quizzes':'dashboard');setEditingQuiz(null)}}/>}
+        {view==='quizzes'&&<QuizList quizzes={quizzes} onEdit={q=>{setEditingQuiz(q);setView('create')}} onDelete={deleteQuiz} onDuplicate={duplicateQuiz} onPreview={setPreviewQuiz} onQR={setQrQuiz} onAK={openAK}/>}
+        {view==='preview'&&previewQuiz&&<PaperPreview quiz={previewQuiz} onQR={()=>setQrQuiz(previewQuiz)} onAR={()=>setArQuiz(previewQuiz)} onAK={()=>openAK(previewQuiz)} showToast={showToast}/>}
+      </main>
+      {previewQuiz&&view!=='preview'&&(
+        <div className="modal-overlay" onClick={()=>setPreviewQuiz(null)}>
+          <div style={{maxWidth:900,width:'95%',maxHeight:'90vh',overflow:'auto'}} onClick={e=>e.stopPropagation()}>
+            <PaperPreview quiz={previewQuiz} onQR={()=>setQrQuiz(previewQuiz)} onAR={()=>setArQuiz(previewQuiz)} onAK={()=>openAK(previewQuiz)} showToast={showToast} modal/>
+            <div style={{textAlign:'center',marginTop:16}}><button className="btn btn-secondary" onClick={()=>setPreviewQuiz(null)}>Close</button></div>
+          </div>
+        </div>
+      )}
+      {qrQuiz&&<QRModal quiz={qrQuiz} onClose={()=>setQrQuiz(null)} onAR={()=>{setArQuiz(qrQuiz);setQrQuiz(null)}}/>}
+      {arQuiz&&<ARView quiz={arQuiz} onClose={()=>setArQuiz(null)}/>}
+      {akQuiz&&<AKModal quiz={akQuiz} password={akPassword} setPassword={setAkPassword} unlocked={akUnlocked} setUnlocked={setAkUnlocked} onClose={()=>{setAkQuiz(null);setAkUnlocked(false)}}/>}
+      {toast&&<div className={`toast ${toast.type}`}>{toast.type==='success'?'✓ ':''}{toast.msg}</div>}
+    </div>
+  );
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────
+function Sidebar({view,setView}){
+  const items=[
+    {id:'dashboard',icon:'⊞',label:'Dashboard'},
+    {id:'create',icon:'✦',label:'Create Quiz'},
+    {id:'quizzes',icon:'≡',label:'My Quizzes'},
+  ];
+  return(
+    <nav className="sidebar">
+      <div className="logo">
+        <div className="logo-text">ExamForge</div>
+        <div className="logo-sub">Professional Exam Generator</div>
+      </div>
+      <div className="nav">
+        {items.map(i=>(
+          <button key={i.id} className={`nav-item${view===i.id?' active':''}`} onClick={()=>setView(i.id)}>
+            <span className="nav-icon">{i.icon}</span>{i.label}
+          </button>
+        ))}
+      </div>
+      <div className="sidebar-footer">
+        <div style={{fontSize:12,color:'var(--text3)',textAlign:'center'}}>ExamForge v1.0<br/>© 2026 All rights reserved</div>
+      </div>
+    </nav>
+  );
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────
+function Dashboard({quizzes,setView,setEditingQuiz,setPreviewQuiz,setQrQuiz,openAK}){
+  const totalQ=quizzes.reduce((a,q)=>a+q.questions.length,0);
+  const totalM=quizzes.reduce((a,q)=>a+q.totalMarks,0);
+  return(
+    <div>
+      <div className="page-header">
+        <div className="page-title">Dashboard</div>
+        <div className="page-subtitle">Manage and create professional exam papers</div>
+      </div>
+      <div className="content">
+        <div className="stats-row">
+          <div className="stat-card"><div className="stat-num">{quizzes.length}</div><div className="stat-label">Total Quizzes</div></div>
+          <div className="stat-card"><div className="stat-num">{totalQ}</div><div className="stat-label">Total Questions</div></div>
+          <div className="stat-card"><div className="stat-num">{totalM}</div><div className="stat-label">Total Marks</div></div>
+          <div className="stat-card"><div className="stat-num">∞</div><div className="stat-label">AR-Ready Papers</div></div>
+        </div>
+        <div className="flex gap-12 mb-16">
+          <button className="btn btn-primary" onClick={()=>setView('create')}>✦ Create New Quiz</button>
+          <button className="btn btn-secondary" onClick={()=>setView('quizzes')}>≡ View All Quizzes</button>
+        </div>
+        <div className="card">
+          <div className="card-title">Recent Quizzes</div>
+          {quizzes.slice(-3).reverse().map(q=>(
+            <div key={q.id} className="quiz-list-item" onClick={()=>setPreviewQuiz(q)}>
+              <div className="quiz-info">
+                <div className="quiz-name">{q.title}</div>
+                <div className="quiz-meta-line">{q.subject} · {q.questions.length} questions · {q.totalMarks} marks · {q.duration}</div>
+              </div>
+              <div className="quiz-actions" onClick={e=>e.stopPropagation()}>
+                <button className="btn btn-secondary btn-sm" onClick={()=>setQrQuiz(q)}>▣ QR</button>
+                <button className="btn btn-gold btn-sm" onClick={()=>openAK(q)}>⊕ Key</button>
+              </div>
+            </div>
+          ))}
+          {quizzes.length===0&&<div className="empty"><div className="empty-icon">◉</div><div className="empty-text">No quizzes yet</div></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── QuizList ─────────────────────────────────────────────────────────
+function QuizList({quizzes,onEdit,onDelete,onDuplicate,onPreview,onQR,onAK}){
+  return(
+    <div>
+      <div className="page-header">
+        <div className="page-title">My Quizzes</div>
+        <div className="page-subtitle">{quizzes.length} quiz{quizzes.length!==1?'es':''} created</div>
+      </div>
+      <div className="content">
+        {quizzes.length===0?<div className="empty"><div className="empty-icon">≡</div><div className="empty-text">No quizzes yet</div><div className="empty-sub">Create your first quiz to get started</div></div>:
+        quizzes.map(q=>(
+          <div key={q.id} className="quiz-list-item">
+            <div className="quiz-info" onClick={()=>onPreview(q)} style={{cursor:'pointer',flex:1}}>
+              <div className="quiz-name">{q.title}</div>
+              <div className="quiz-meta-line">{q.subject} · Class: {q.classGroup} · {q.questions.length} Qs · {q.totalMarks} marks · {q.duration}</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>{new Date(q.createdAt).toLocaleDateString()}</div>
+            </div>
+            <div className="quiz-actions" style={{flexShrink:0}}>
+              <button className="btn btn-secondary btn-sm" onClick={()=>onEdit(q)}>✎</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>onDuplicate(q)}>⧉</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>onPreview(q)}>◉</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>onQR(q)}>▣ QR</button>
+              <button className="btn btn-gold btn-sm" onClick={()=>onAK(q)}>⊕ Key</button>
+              <button className="btn btn-danger btn-sm" onClick={()=>onDelete(q.id)}>✕</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── QuizBuilder ──────────────────────────────────────────────────────
+function QuizBuilder({initialQuiz,onSave,onCancel}){
+  const blank={id:generateId(),title:'',subject:'',classGroup:'',duration:'',totalMarks:0,password:'',createdAt:new Date().toISOString(),questions:[]};
+  const [quiz,setQuiz]=useState(initialQuiz?{...initialQuiz}:{...blank});
+
+  const updateMeta=(k,v)=>setQuiz(q=>({...q,[k]:v}));
+
+  const addQuestion=(type)=>{
+    const q={id:generateId(),type,text:'',options:['','','',''],correct:'A',part:'I'};
+    setQuiz(prev=>({...prev,questions:[...prev.questions,q]}));
+  };
+
+  const updateQ=(id,changes)=>{
+    setQuiz(prev=>({...prev,questions:prev.questions.map(q=>q.id===id?{...q,...changes}:q)}));
+  };
+
+  const removeQ=(id)=>{
+    setQuiz(prev=>({...prev,questions:prev.questions.filter(q=>q.id!==id)}));
+  };
+
+  const moveQ=(id,dir)=>{
+    setQuiz(prev=>{
+      const qs=[...prev.questions];
+      const i=qs.findIndex(q=>q.id===id);
+      if(dir<0&&i===0||dir>0&&i===qs.length-1)return prev;
+      [qs[i],qs[i+dir]]=[qs[i+dir],qs[i]];
+      return {...prev,questions:qs};
+    });
+  };
+
+  const handleSave=()=>{
+    if(!quiz.title||!quiz.subject){alert('Please fill in title and subject.');return;}
+    if(quiz.questions.length===0){alert('Please add at least one question.');return;}
+    onSave({...quiz,totalMarks:parseInt(quiz.totalMarks)||0});
+  };
+
+  return(
+    <div>
+      <div className="page-header">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="page-title">{initialQuiz?'Edit Quiz':'Create Quiz'}</div>
+            <div className="page-subtitle">Build a professional exam paper</div>
+          </div>
+          <div className="flex gap-8" style={{paddingBottom:24}}>
+            <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleSave}>✓ Save Quiz</button>
+          </div>
+        </div>
+      </div>
+      <div className="content">
+        {/* Meta */}
+        <div className="card">
+          <div className="card-title">Exam Details</div>
+          <div className="form-row">
+            <div className="form-group"><label>Quiz Title *</label><input value={quiz.title} onChange={e=>updateMeta('title',e.target.value)} placeholder="e.g. Quiz (SP 2026)"/></div>
+            <div className="form-group"><label>Subject *</label><input value={quiz.subject} onChange={e=>updateMeta('subject',e.target.value)} placeholder="e.g. Artificial Intelligence"/></div>
+          </div>
+          <div className="form-row">
+            <div className="form-group"><label>Class / Group</label><input value={quiz.classGroup} onChange={e=>updateMeta('classGroup',e.target.value)} placeholder="e.g. BSE-4A"/></div>
+            <div className="form-group"><label>Duration</label><input value={quiz.duration} onChange={e=>updateMeta('duration',e.target.value)} placeholder="e.g. 10 Minutes"/></div>
+          </div>
+          <div className="form-row">
+            <div className="form-group"><label>Total Marks</label><input type="number" value={quiz.totalMarks} onChange={e=>updateMeta('totalMarks',e.target.value)} placeholder="16"/></div>
+            <div className="form-group"><label>Answer Key Password</label><input value={quiz.password} onChange={e=>updateMeta('password',e.target.value)} placeholder="Set a password for answer key access"/></div>
+          </div>
+        </div>
+
+        {/* Questions */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-16">
+            <div className="card-title" style={{margin:0}}>Questions ({quiz.questions.length})</div>
+            <div className="flex gap-8">
+              <button className="btn btn-secondary btn-sm" onClick={()=>addQuestion('mcq')}>+ MCQ</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>addQuestion('short')}>+ Short Answer</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>addQuestion('tf')}>+ True/False</button>
+            </div>
+          </div>
+          {quiz.questions.length===0&&<div className="empty" style={{padding:'30px 0'}}><div className="empty-icon">✦</div><div className="empty-text">No questions yet</div><div className="empty-sub">Click a button above to add questions</div></div>}
+          {quiz.questions.map((q,i)=>(
+            <QuestionEditor key={q.id} q={q} num={i+1} total={quiz.questions.length} onChange={changes=>updateQ(q.id,changes)} onRemove={()=>removeQ(q.id)} onMove={dir=>moveQ(q.id,dir)}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionEditor({q,num,total,onChange,onRemove,onMove}){
+  const typeBadge={mcq:'badge-mcq',short:'badge-short',tf:'badge-tf'};
+  const typeLabel={mcq:'MCQ',short:'Short Answer',tf:'True/False'};
+  return(
+    <div className="question-card">
+      <div className="question-header">
+        <div className="flex items-center gap-8">
+          <span className="q-num">Q{num}</span>
+          <span className={`badge ${typeBadge[q.type]}`}>{typeLabel[q.type]}</span>
+          <select value={q.part||'I'} onChange={e=>onChange({part:e.target.value})} style={{width:'auto',padding:'4px 8px',fontSize:12}}>
+            <option value="I">Part-I</option>
+            <option value="II">Part-II</option>
+          </select>
+        </div>
+        <div className="flex gap-8">
+          <button className="btn btn-ghost btn-sm" onClick={()=>onMove(-1)} disabled={num===1}>↑</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>onMove(1)} disabled={num===total}>↓</button>
+          <button className="btn btn-danger btn-sm" onClick={onRemove}>✕</button>
+        </div>
+      </div>
+      <div className="form-group"><label>Question Text</label><textarea value={q.text} onChange={e=>onChange({text:e.target.value})} placeholder="Enter question here…" rows={2}/></div>
+      {q.type==='mcq'&&(
+        <>
+          <div className="options-grid">
+            {['A','B','C','D'].map((opt,i)=>(
+              <div key={opt} className="option-row">
+                <span className="option-label">{opt}.</span>
+                <input value={q.options[i]||''} onChange={e=>{const ops=[...q.options];ops[i]=e.target.value;onChange({options:ops})}} placeholder={`Option ${opt}`}/>
+              </div>
+            ))}
+          </div>
+          <div className="answer-row">
+            <span className="answer-label">Correct Answer:</span>
+            <select value={q.correct} onChange={e=>onChange({correct:e.target.value})} style={{width:'auto',padding:'4px 8px'}}>
+              {['A','B','C','D'].map(o=><option key={o}>{o}</option>)}
+            </select>
+          </div>
+        </>
+      )}
+      {q.type==='tf'&&(
+        <div className="answer-row">
+          <span className="answer-label">Correct Answer:</span>
+          <select value={q.correct} onChange={e=>onChange({correct:e.target.value})} style={{width:'auto',padding:'4px 8px'}}>
+            <option value="True">True</option>
+            <option value="False">False</option>
+          </select>
+        </div>
+      )}
+      {q.type==='short'&&(
+        <div className="form-group mt-8"><label>Model Answer (hidden from students)</label><textarea value={q.correct} onChange={e=>onChange({correct:e.target.value})} placeholder="Enter the expected answer…" rows={2}/></div>
+      )}
+    </div>
+  );
+}
+
+// ── PaperPreview ──────────────────────────────────────────────────────
+function PaperPreview({quiz,onQR,onAR,onAK,showToast,modal}){
+  const qrRef=useRef(null);
+  const [qrGenerated,setQrGenerated]=useState(false);
+  const answerUrl=`${window.location.href.split('?')[0]}?ak=${quiz.id}`;
+
+  useEffect(()=>{
+    if(qrRef.current&&!qrGenerated&&typeof QRCode!=='undefined'){
+      try{
+        qrRef.current.innerHTML='';
+        new QRCode(qrRef.current,{text:answerUrl,width:64,height:64,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+        setQrGenerated(true);
+      }catch(e){}
+    }
+  },[quiz.id]);
+
+  const partI=quiz.questions.filter(q=>!q.part||q.part==='I');
+  const partII=quiz.questions.filter(q=>q.part==='II');
+
+  const handlePrint=()=>{
+    const printArea=document.getElementById('exam-paper-area');
+    const w=window.open('','_blank');
+    w.document.write(`<html><head><title>${quiz.title}</title><style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Times New Roman',serif;font-size:13px;color:#000;background:#fff;padding:30px 40px}
+      table{border-collapse:collapse;width:100%}
+      td,th{padding:3px 6px}
+    </style></head><body>${printArea.innerHTML}</body></html>`);
+    w.document.close();
+    w.print();
+  };
+
+  return(
+    <div>
+      {!modal&&(
+        <div className="page-header">
+          <div className="flex items-center justify-between">
+            <div><div className="page-title">Paper Preview</div><div className="page-subtitle">{quiz.title}</div></div>
+            <div className="flex gap-8" style={{paddingBottom:24}}>
+              <button className="btn btn-secondary" onClick={onQR}>▣ QR Code</button>
+              <button className="btn btn-secondary" onClick={onAR}>◈ Launch AR</button>
+              <button className="btn btn-gold" onClick={onAK}>⊕ Answer Key</button>
+              <button className="btn btn-primary" onClick={handlePrint}>↓ Print</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {modal&&(
+        <div className="flex gap-8 mb-16" style={{justifyContent:'flex-end',paddingTop:16,paddingRight:16}}>
+          <button className="btn btn-secondary btn-sm" onClick={onQR}>▣ QR</button>
+          <button className="btn btn-secondary btn-sm" onClick={onAR}>◈ AR</button>
+          <button className="btn btn-gold btn-sm" onClick={onAK}>⊕ Key</button>
+          <button className="btn btn-primary btn-sm" onClick={handlePrint}>↓ Print</button>
+        </div>
+      )}
+      <div className={modal?'':' content'} style={{padding:modal?'0 16px 24px':''}}>
+        <div id="exam-paper-area" className="exam-paper">
+          {/* Header */}
+          <div className="paper-header">
+            <div className="paper-header-top">
+              <div style={{flex:1}}>
+                <div className="paper-title">{quiz.title}</div>
+                <div className="name-reg">
+                  <span>Name: <span className="underline-field">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>
+                  <span>Registration #: <span className="underline-field">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span>
+                </div>
+                <div className="paper-meta">
+                  <div><div className="paper-meta-item"><span className="paper-meta-key">Class:</span><span>{quiz.classGroup||'—'}</span></div><div className="paper-meta-item"><span className="paper-meta-key">Time:</span><span>{quiz.duration||'—'}</span></div></div>
+                  <div><div className="paper-meta-item"><span className="paper-meta-key">Subject:</span><span>{quiz.subject}</span></div><div className="paper-meta-item"><span className="paper-meta-key">Total Marks:</span><span>{quiz.totalMarks}</span></div></div>
+                </div>
+              </div>
+              <div className="paper-qr-area">
+                <div ref={qrRef} style={{width:64,height:64}}></div>
+                <div className="paper-qr-label">Scan for<br/>Answer Key</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Answer bubbles */}
+          <AnswerBubbles partI={partI} partII={partII}/>
+
+          {/* Part I */}
+          {partI.length>0&&(
+            <>
+              <div className="paper-section-title">Part-I</div>
+              {partI.map((q,i)=><PaperQuestion key={q.id} q={q} num={i+1}/>)}
+            </>
+          )}
+
+          {/* Part II */}
+          {partII.length>0&&(
+            <>
+              <div className="paper-section-title">Part-II</div>
+              {partII.map((q,i)=><PaperQuestion key={q.id} q={q} num={i+1}/>)}
+            </>
+          )}
+
+          {/* Bottom QR label */}
+          <div className="paper-qr-bottom">
+            <span>▣ Scan QR code for answer key | ExamForge © 2026</span>
+            <span style={{fontFamily:'monospace',fontSize:10}}>{answerUrl}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnswerBubbles({partI,partII}){
+  if(partI.filter(q=>q.type==='mcq').length===0&&partII.filter(q=>q.type==='mcq').length===0)return null;
+  const mcqI=partI.filter(q=>q.type==='mcq');
+  const mcqII=partII.filter(q=>q.type==='mcq');
+  return(
+    <div style={{display:'grid',gridTemplateColumns:mcqII.length?'1fr 1fr':'1fr',gap:16,marginBottom:16,fontSize:12}}>
+      {mcqI.length>0&&(
+        <div style={{border:'1px solid #333'}}>
+          <div style={{background:'#333',color:'#fff',textAlign:'center',padding:'3px',fontSize:11,fontWeight:'bold'}}>Answers Part-I</div>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr style={{background:'#eee'}}><th style={{width:40,borderRight:'0.5px solid #aaa',padding:'2px 4px'}}>Q</th>{['A','B','C','D'].map(l=><th key={l} style={{textAlign:'center',borderRight:'0.5px solid #aaa',padding:'2px'}}>{l}</th>)}</tr></thead>
+            <tbody>{mcqI.map((q,i)=><tr key={q.id} style={{borderTop:'0.5px solid #ddd'}}><td style={{textAlign:'center',fontWeight:'bold',borderRight:'0.5px solid #aaa',padding:'2px 4px',fontFamily:'monospace',fontSize:11}}>Q{String(i+1).padStart(2,'0')}</td>{['A','B','C','D'].map(l=><td key={l} style={{textAlign:'center',borderRight:'0.5px solid #aaa',padding:'2px'}}><span style={{display:'inline-block',width:16,height:16,borderRadius:'50%',border:'1px solid #555',textAlign:'center',lineHeight:'16px',fontSize:9}}>{l}</span></td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      )}
+      {mcqII.length>0&&(
+        <div style={{border:'1px solid #333'}}>
+          <div style={{background:'#333',color:'#fff',textAlign:'center',padding:'3px',fontSize:11,fontWeight:'bold'}}>Answers Part-II</div>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr style={{background:'#eee'}}><th style={{width:40,borderRight:'0.5px solid #aaa',padding:'2px 4px'}}>Q</th>{['A','B','C','D'].map(l=><th key={l} style={{textAlign:'center',borderRight:'0.5px solid #aaa',padding:'2px'}}>{l}</th>)}</tr></thead>
+            <tbody>{mcqII.map((q,i)=><tr key={q.id} style={{borderTop:'0.5px solid #ddd'}}><td style={{textAlign:'center',fontWeight:'bold',borderRight:'0.5px solid #aaa',padding:'2px 4px',fontFamily:'monospace',fontSize:11}}>Q{String(i+1).padStart(2,'0')}</td>{['A','B','C','D'].map(l=><td key={l} style={{textAlign:'center',borderRight:'0.5px solid #aaa',padding:'2px'}}><span style={{display:'inline-block',width:16,height:16,borderRadius:'50%',border:'1px solid #555',textAlign:'center',lineHeight:'16px',fontSize:9}}>{l}</span></td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaperQuestion({q,num}){
+  return(
+    <div className="paper-question">
+      <div><span className="paper-q-num">{num}. </span><span className="paper-q-text" style={{fontWeight:600}}>{q.text}</span></div>
+      {q.type==='mcq'&&(
+        <div className="paper-options">
+          {['A','B','C','D'].map((l,i)=>q.options[i]?(
+            <div key={l} className="paper-option"><span className="paper-option-key">{l}.</span><span>{q.options[i]}</span></div>
+          ):null)}
+        </div>
+      )}
+      {q.type==='tf'&&(
+        <div className="paper-tf-options"><span><b>A.</b> True</span><span><b>B.</b> False</span></div>
+      )}
+      {q.type==='short'&&(
+        <><div className="paper-short-line"/><div className="paper-short-line" style={{marginTop:20}}/></>
+      )}
+    </div>
+  );
+}
+
+// ── QR Modal ──────────────────────────────────────────────────────────
+function QRModal({quiz,onClose,onAR}){
+  const qrRef=useRef(null);
+  const answerUrl=`${window.location.href.split('?')[0]}?ak=${quiz.id}&p=${encodeURIComponent(quiz.password||'')}`;
+
+  useEffect(()=>{
+    if(qrRef.current&&typeof QRCode!=='undefined'){
+      qrRef.current.innerHTML='';
+      try{
+        new QRCode(qrRef.current,{text:answerUrl,width:200,height:200,colorDark:'#1a1a26',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+      }catch(e){}
+    }
+  },[]);
+
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">▣ QR Code</div>
+        <div className="modal-sub">{quiz.title} — Scan to access answer key</div>
+        <div className="qr-wrapper"><div ref={qrRef}/></div>
+        <div style={{fontSize:12,color:'var(--text3)',marginBottom:20,wordBreak:'break-all',background:'var(--bg3)',padding:'10px',borderRadius:'var(--r2)',fontFamily:'monospace'}}>{answerUrl}</div>
+        <div className="flex gap-8" style={{justifyContent:'center'}}>
+          <button className="btn btn-secondary" onClick={onAR}>◈ Launch AR Experience</button>
+          <button className="btn btn-primary" onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── AR View ───────────────────────────────────────────────────────────
+function ARView({quiz,onClose}){
+  const [revealed,setRevealed]=useState([]);
+  const [all,setAll]=useState(false);
+
+  useEffect(()=>{
+    // Stagger reveal
+    if(all){
+      quiz.questions.forEach((_,i)=>{
+        setTimeout(()=>setRevealed(prev=>[...prev,i]),i*120);
+      });
+    }else{setRevealed([])}
+  },[all]);
+
+  const answerLabel=(q)=>{
+    if(q.type==='mcq')return`${q.correct}. ${q.options[['A','B','C','D'].indexOf(q.correct)]||''}`;
+    return q.correct||'—';
+  };
+
+  const partI=quiz.questions.filter(q=>!q.part||q.part==='I');
+  const partII=quiz.questions.filter(q=>q.part==='II');
+
+  return(
+    <div className="ar-overlay">
+      <div className="ar-frame">
+        <div className="ar-header">
+          <div>
+            <div className="ar-title">◈ AR Answer Reveal</div>
+            <div style={{fontSize:13,color:'rgba(255,255,255,0.75)',marginTop:2}}>{quiz.title} · {quiz.subject}</div>
+          </div>
+          <button className="btn btn-ghost" style={{color:'#fff'}} onClick={onClose}>✕ Close</button>
+        </div>
+        <div style={{padding:'16px 20px',background:'var(--bg3)',borderBottom:'1px solid var(--border)',display:'flex',gap:12,alignItems:'center'}}>
+          <button className="btn btn-primary btn-sm" onClick={()=>setAll(true)}>▶ Reveal All Answers</button>
+          <button className="btn btn-secondary btn-sm" onClick={()=>{setAll(false);setRevealed([])}}>↺ Reset</button>
+          <span style={{fontSize:13,color:'var(--text3)'}}>{revealed.length}/{quiz.questions.length} revealed</span>
+        </div>
+        <div className="ar-content">
+          {partI.length>0&&(
+            <>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>Part-I</div>
+              {partI.map((q,i)=>(
+                <ARAnswerItem key={q.id} q={q} num={i+1} revealed={revealed.includes(i)} answerLabel={answerLabel} onReveal={()=>setRevealed(prev=>[...prev,i])} globalIdx={i}/>
+              ))}
+            </>
+          )}
+          {partII.length>0&&(
+            <>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',margin:'16px 0 10px'}}>Part-II</div>
+              {partII.map((q,i)=>{
+                const gi=partI.length+i;
+                return<ARAnswerItem key={q.id} q={q} num={i+1} revealed={revealed.includes(gi)} answerLabel={answerLabel} onReveal={()=>setRevealed(prev=>[...prev,gi])} globalIdx={gi}/>;
+              })}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ARAnswerItem({q,num,revealed,answerLabel,onReveal,globalIdx}){
+  return(
+    <div className="ar-answer-item" style={{animationDelay:`${globalIdx*0.05}s`,opacity:1,cursor:revealed?'default':'pointer'}} onClick={revealed?undefined:onReveal}>
+      <span className="ar-q-num">Q{String(num).padStart(2,'0')}</span>
+      <span style={{flex:1,fontSize:13,color:'var(--text2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{q.text.slice(0,60)}{q.text.length>60?'…':''}</span>
+      {revealed?(
+        <span className="ar-answer-badge">{answerLabel(q)}</span>
+      ):(
+        <span style={{fontSize:12,color:'var(--text3)'}}>tap to reveal</span>
+      )}
+    </div>
+  );
+}
+
+// ── Answer Key Modal ──────────────────────────────────────────────────
+function AKModal({quiz,password,setPassword,unlocked,setUnlocked,onClose}){
+  const check=()=>{
+    if(!quiz.password||password===quiz.password)setUnlocked(true);
+    else alert('Incorrect password.');
+  };
+  const partI=quiz.questions.filter(q=>!q.part||q.part==='I');
+  const partII=quiz.questions.filter(q=>q.part==='II');
+
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div style={{maxWidth:600,width:'95%',maxHeight:'90vh',overflow:'auto',borderRadius:'var(--r)',background:'var(--bg2)'}} onClick={e=>e.stopPropagation()}>
+        {!unlocked?(
+          <div style={{padding:32,textAlign:'center'}}>
+            <div style={{fontSize:40,marginBottom:16}}>⊕</div>
+            <div className="modal-title">Answer Key Access</div>
+            <div className="modal-sub">This answer key is password-protected</div>
+            {quiz.password?(
+              <>
+                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password" onKeyDown={e=>e.key==='Enter'&&check()} style={{maxWidth:280,margin:'0 auto 16px',display:'block'}}/>
+                <div className="flex gap-8" style={{justifyContent:'center'}}>
+                  <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                  <button className="btn btn-gold" onClick={check}>Unlock</button>
+                </div>
+              </>
+            ):(
+              <button className="btn btn-gold" onClick={()=>setUnlocked(true)}>View Answer Key</button>
+            )}
+          </div>
+        ):(
+          <div className="answer-key-paper" style={{borderRadius:'var(--r)',margin:0}}>
+            <div className="ak-header">
+              <div className="ak-title">Answer Key — {quiz.title}</div>
+              <div className="ak-meta">{quiz.subject} · {quiz.totalMarks} Marks · {quiz.duration}</div>
+            </div>
+            {partI.length>0&&(
+              <>
+                <div style={{fontWeight:700,fontSize:15,marginBottom:12,textDecoration:'underline'}}>Part-I</div>
+                {partI.map((q,i)=><AKItem key={q.id} q={q} num={i+1}/>)}
+              </>
+            )}
+            {partII.length>0&&(
+              <>
+                <div style={{fontWeight:700,fontSize:15,margin:'20px 0 12px',textDecoration:'underline'}}>Part-II</div>
+                {partII.map((q,i)=><AKItem key={q.id} q={q} num={i+1}/>)}
+              </>
+            )}
+            <div style={{marginTop:20,textAlign:'center'}}>
+              <button className="btn btn-secondary btn-sm" onClick={onClose}>Close</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AKItem({q,num}){
+  const answerText=q.type==='mcq'?`${q.correct}. ${q.options[['A','B','C','D'].indexOf(q.correct)]||''}`:q.correct;
+  return(
+    <div className="ak-item">
+      <span className="ak-num">Q{num}.</span>
+      <div style={{flex:1}}>
+        <div className="ak-answer" style={{fontSize:13,color:'#555',marginBottom:4}}>{q.text.slice(0,80)}{q.text.length>80?'…':''}</div>
+        <span className="ak-correct">{answerText||'—'}</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
